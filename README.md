@@ -7,11 +7,21 @@ A minimal BitTorrent client written in Go 🚀 that demonstrates core peer-to-pe
 ## 📦 Features
 
 - 🤝 Peer handshake & connection
-- 📡 BitTorrent message protocol
-- 🧩 Piece-based downloading
+- 📡 BitTorrent wire protocol support
+- 🧩 Piece-based downloading (16KB blocks)
 - 🔐 SHA-1 integrity verification
-- ⚙️ Concurrent workers (one per peer)
-- 💾 Random-access file writing (`WriteAt`)
+- ⚙️ Concurrent workers (multi-peer support)
+- 💾 Random-access file writing
+- 📊 Download progress tracking
+- 🧪 CLI flags for flexible usage
+
+---
+
+## 👨‍💻 Usage
+
+```bash
+go run cmd/main.go tmp/sample.torrent tmp/out.md
+```
 
 ---
 
