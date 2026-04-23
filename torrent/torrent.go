@@ -108,6 +108,15 @@ func (t *TorrentFile) getPeers() ([]peer.Peer, error) {
 	return peers, nil
 }
 
+func (t *Torrent) GetPeicePosition(index int) (int, int) {
+	size := t.Length / len(t.PieceHashes)
+
+	start := index * size
+	end := min(start+size, t.Length)
+
+	return start, end
+}
+
 func New(path string) (*Torrent, error) {
 	torrentFile, err := Open(path)
 	if err != nil {

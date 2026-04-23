@@ -12,20 +12,20 @@ type Client struct {
 	Peer      peer.Peer
 	Torrent   *torrent.Torrent
 	Conn      net.Conn
-	TaskQueue chan int
+	TaskQueue chan *pieceTask
 }
 
 type PeerNetwork struct {
 	Clients   []*Client
 	Torrent   *torrent.Torrent
 	wg        sync.WaitGroup
-	TaskQueue chan int
+	TaskQueue chan *pieceTask
 }
 
 func NewPeerNetwork(torrent *torrent.Torrent) *PeerNetwork {
 	clients := make([]*Client, 0)
 
-	taskQueue := make(chan int, len(torrent.PieceHashes))
+	taskQueue := make(chan *pieceTask, len(torrent.PieceHashes))
 
 	for _, peer := range torrent.Peers {
 		// establish a tcp connection
@@ -51,8 +51,14 @@ func NewPeerNetwork(torrent *torrent.Torrent) *PeerNetwork {
 }
 
 func (n *PeerNetwork) Start() {
-	for i := range n.Torrent.PieceHashes {
-		n.TaskQueue <- i
+	for i, piece := range n.Torrent.PieceHashes {
+		start, end := n.Torrent.GetPeicePosition(i)
+
+		n.TaskQueue <- &pieceTask{
+			start: start,
+			end:   end,
+			hash:  piece,
+		}
 	}
 
 	for _, client := range n.Clients {
