@@ -2,6 +2,7 @@ package network
 
 import (
 	"bytes"
+	"encoding/hex"
 	"log"
 
 	"github.com/rohit20001221/ripple/messages"
@@ -38,7 +39,18 @@ func (c *Client) startDownloadHandler() {
 		return
 	}
 
-	for range c.TaskQueue {
+	// get the bitfield message
+	bitfield := messages.ReadBitField(c.Conn)
 
+	// start exchanging the messages
+	for task := range c.TaskQueue {
+		if !bitfield.HasIndex(task.index) {
+			// if the current peer is not having the piece
+			// enque the task and continue
+			c.TaskQueue <- task
+			continue
+		}
+
+		log.Println("Task hash:", hex.EncodeToString(task.hash[:]))
 	}
 }

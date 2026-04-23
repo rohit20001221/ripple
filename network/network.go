@@ -59,6 +59,7 @@ func (n *PeerNetwork) Start() {
 			end:   end,
 			size:  size,
 			hash:  piece,
+			index: i,
 		}
 	}
 
@@ -66,5 +67,10 @@ func (n *PeerNetwork) Start() {
 		n.wg.Go(client.startDownloadHandler)
 	}
 
+	for range len(n.Torrent.PieceHashes) {
+		// collect indivudial pieces
+	}
+
+	close(n.TaskQueue)
 	n.wg.Wait()
 }
