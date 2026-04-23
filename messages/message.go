@@ -36,7 +36,10 @@ func ReadPeerMessage(r io.Reader) PeerMessage {
 func (msg PeerMessage) Write(w io.Writer) {
 	binary.Write(w, binary.BigEndian, msg.Length)
 	binary.Write(w, binary.BigEndian, msg.MessageID)
-	binary.Write(w, binary.BigEndian, msg.Payload)
+
+	if len(msg.Payload) > 0 {
+		binary.Write(w, binary.BigEndian, msg.Payload)
+	}
 }
 
 func ReadBitField(r io.Reader) bitfield.BitField {
@@ -61,4 +64,33 @@ func IsUnchoke(r io.Reader) bool {
 	msg := ReadPeerMessage(r)
 
 	return msg.MessageID == MSG_UNCHOKE
+}
+
+// request for a piece
+func RequestPiece(index, begin, length uint32, w io.Writer) {
+	// one uint32 => 4 bytes
+	message := PeerMessage{
+		Length:    13,
+		MessageID: MSG_REQUEST,
+	}
+
+	// write the message header
+	message.Write(w)
+
+	// write the payload
+	binary.Write(w, binary.BigEndian, index)
+	binary.Write(w, binary.BigEndian, begin)
+	binary.Write(w, binary.BigEndian, length)
+}
+
+func ReadBlock(message PeerMessage) (int, int, []byte) {
+	var index uint32
+	var begin uint32
+	var block []byte
+
+	index = binary.BigEndian.Uint32(message.Payload[0:4])
+	begin = binary.BigEndian.Uint32(message.Payload[4:8])
+	block = message.Payload[8:]
+
+	return int(index), int(begin), block
 }

@@ -1,31 +1,33 @@
 package network
 
 import (
+	"log"
 	"net"
-	"sync"
 
 	"github.com/rohit20001221/ripple/peer"
 	"github.com/rohit20001221/ripple/torrent"
 )
 
 type Client struct {
-	Peer      peer.Peer
-	Torrent   *torrent.Torrent
-	Conn      net.Conn
-	TaskQueue chan *pieceTask
+	Peer        peer.Peer
+	Torrent     *torrent.Torrent
+	Conn        net.Conn
+	TaskQueue   chan *pieceTask
+	PieceResult chan *pieceResponse
 }
 
 type PeerNetwork struct {
-	Clients   []*Client
-	Torrent   *torrent.Torrent
-	wg        sync.WaitGroup
-	TaskQueue chan *pieceTask
+	Clients     []*Client
+	Torrent     *torrent.Torrent
+	TaskQueue   chan *pieceTask
+	PieceResult chan *pieceResponse
 }
 
 func NewPeerNetwork(torrent *torrent.Torrent) *PeerNetwork {
 	clients := make([]*Client, 0)
 
 	taskQueue := make(chan *pieceTask, len(torrent.PieceHashes))
+	pieceResult := make(chan *pieceResponse)
 
 	for _, peer := range torrent.Peers {
 		// establish a tcp connection
@@ -35,18 +37,19 @@ func NewPeerNetwork(torrent *torrent.Torrent) *PeerNetwork {
 		}
 
 		clients = append(clients, &Client{
-			Peer:      peer,
-			Torrent:   torrent,
-			Conn:      conn,
-			TaskQueue: taskQueue,
+			Peer:        peer,
+			Torrent:     torrent,
+			Conn:        conn,
+			TaskQueue:   taskQueue,
+			PieceResult: pieceResult,
 		})
 	}
 
 	return &PeerNetwork{
-		Clients:   clients,
-		Torrent:   torrent,
-		wg:        sync.WaitGroup{},
-		TaskQueue: taskQueue,
+		Clients:     clients,
+		Torrent:     torrent,
+		TaskQueue:   taskQueue,
+		PieceResult: pieceResult,
 	}
 }
 
@@ -64,13 +67,16 @@ func (n *PeerNetwork) Start() {
 	}
 
 	for _, client := range n.Clients {
-		n.wg.Go(client.startDownloadHandler)
+		go client.startDownloadHandler()
 	}
 
 	for range len(n.Torrent.PieceHashes) {
+		piece := <-n.PieceResult
+
 		// collect indivudial pieces
+		log.Println(string(piece.piece))
 	}
 
+	close(n.PieceResult)
 	close(n.TaskQueue)
-	n.wg.Wait()
 }

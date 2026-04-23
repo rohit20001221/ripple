@@ -2,7 +2,6 @@ package network
 
 import (
 	"bytes"
-	"encoding/hex"
 	"log"
 
 	"github.com/rohit20001221/ripple/messages"
@@ -41,6 +40,11 @@ func (c *Client) startDownloadHandler() {
 
 	// get the bitfield message
 	bitfield := messages.ReadBitField(c.Conn)
+	log.Printf("bitfield: %b", bitfield)
+	choked := true
+
+	// tell the peer that you are interested to connect with it
+	messages.SendInterested(c.Conn)
 
 	// start exchanging the messages
 	for task := range c.TaskQueue {
@@ -51,6 +55,52 @@ func (c *Client) startDownloadHandler() {
 			continue
 		}
 
-		log.Println("Task hash:", hex.EncodeToString(task.hash[:]))
+		if !choked {
+			// process the piece
+
+			// break the piece into blocks of 16KiB (16 * 1024 bytes) and send a request message for each block
+			// payload for request message is as follows
+			// index: 0 based index of the piece
+			// begin: 0 based byte offset within the piece
+			// length of block in bytes
+			// length of blocks is 16 * 1024 or 2^14 for each block except last one
+			totalBlocks := 0
+			piece := make([]byte, task.size)
+
+			// messages.RequestPiece(index, begin, length)
+			for _, block := range task.Blocks() {
+				log.Println(block)
+
+				totalBlocks++
+				messages.RequestPiece(block.pieceIndex, block.begin, block.length, c.Conn)
+			}
+
+			// wait until we receive all the blocks of the pieces
+			for totalBlocks > 0 {
+				message := messages.ReadPeerMessage(c.Conn)
+				if message.MessageID == messages.MSG_PIECE {
+					// parse the message payload to piece block message
+					_, begin, block := messages.ReadBlock(message)
+					copy(piece[begin:], block)
+
+					totalBlocks--
+				}
+			}
+
+			// if the piece received is invalid then assign it back to queue
+			if !task.CheckIntegrity(piece) {
+				c.TaskQueue <- task
+				continue
+			}
+
+			c.PieceResult <- &pieceResponse{
+				start: task.start,
+				piece: piece,
+			}
+		} else {
+			// wait for the peer to unchoke itself
+			c.TaskQueue <- task
+			choked = !messages.IsUnchoke(c.Conn)
+		}
 	}
 }
