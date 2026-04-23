@@ -9,13 +9,14 @@ import (
 )
 
 func main() {
-	if len(os.Args) < 1 {
+	if len(os.Args) < 2 {
 		log.Fatalln("error: provide the path to torrent")
 	}
 
 	filePath := os.Args[1]
+	outPath := os.Args[2]
 
-	torrent, err := torrent.New(filePath)
+	torrent, err := torrent.New(filePath, outPath)
 	if err != nil {
 		log.Fatalln(err)
 	}

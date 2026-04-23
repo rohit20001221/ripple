@@ -3,6 +3,7 @@ package network
 import (
 	"log"
 	"net"
+	"os"
 
 	"github.com/rohit20001221/ripple/peer"
 	"github.com/rohit20001221/ripple/torrent"
@@ -71,8 +72,19 @@ func (n *PeerNetwork) Start() {
 		go client.startDownloadHandler()
 	}
 
+	outFile, err := os.Create(n.Torrent.OutPath)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	defer outFile.Close()
+
 	for range len(n.Torrent.PieceHashes) {
-		<-n.PieceResult
+		piece := <-n.PieceResult
+
+		log.Println("writing piece at:", piece.start)
+		outFile.Seek(int64(piece.start), 0)
+		outFile.Write(piece.piece)
 	}
 
 	close(n.PieceResult)

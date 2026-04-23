@@ -31,6 +31,7 @@ type Torrent struct {
 	InfoHash    [20]byte
 	PeerID      [20]byte
 	Peers       []peer.Peer
+	OutPath     string
 }
 
 type trackerResponse struct {
@@ -117,7 +118,7 @@ func (t *Torrent) GetPeicePosition(index int) (int, int, int) {
 	return start, end, end - start
 }
 
-func New(path string) (*Torrent, error) {
+func New(path string, outPath string) (*Torrent, error) {
 	torrentFile, err := Open(path)
 	if err != nil {
 		return nil, err
@@ -137,5 +138,6 @@ func New(path string) (*Torrent, error) {
 		InfoHash:    torrentFile.InfoHash,
 		PeerID:      torrentFile.InfoHash,
 		Peers:       peers,
+		OutPath:     outPath,
 	}, nil
 }
