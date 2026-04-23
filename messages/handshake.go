@@ -34,7 +34,7 @@ func (h *HandshakeMessage) SetPeerID(peerID [20]byte) {
 	h.PeerID = peerID
 }
 
-func (h *HandshakeMessage) Encode(buf io.Writer) {
+func (h *HandshakeMessage) Encode(buf io.Writer) error {
 	binary.Write(buf, binary.BigEndian, h.Length)
 
 	protocolString := make([]byte, 19)
@@ -43,17 +43,19 @@ func (h *HandshakeMessage) Encode(buf io.Writer) {
 	binary.Write(buf, binary.BigEndian, protocolString)
 	binary.Write(buf, binary.BigEndian, h.Reserved)
 	binary.Write(buf, binary.BigEndian, h.InfoHash)
-	binary.Write(buf, binary.BigEndian, h.PeerID)
+	err := binary.Write(buf, binary.BigEndian, h.PeerID)
+
+	return err
 }
 
-func (h *HandshakeMessage) Decode(r io.Reader) *HandshakeMessage {
+func (h *HandshakeMessage) Decode(r io.Reader) (*HandshakeMessage, error) {
 	h.ProtocolString = make([]byte, 19)
 
 	binary.Read(r, binary.BigEndian, &h.Length)
 	binary.Read(r, binary.BigEndian, &h.ProtocolString)
 	binary.Read(r, binary.BigEndian, &h.Reserved)
 	binary.Read(r, binary.BigEndian, &h.InfoHash)
-	binary.Read(r, binary.BigEndian, &h.PeerID)
+	err := binary.Read(r, binary.BigEndian, &h.PeerID)
 
-	return h
+	return h, err
 }

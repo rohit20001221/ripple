@@ -21,53 +21,55 @@ func NewPeerMessage(messageID messageID, payload []byte) PeerMessage {
 	}
 }
 
-func ReadPeerMessage(r io.Reader) PeerMessage {
+func ReadPeerMessage(r io.Reader) (PeerMessage, error) {
 	var message PeerMessage
 
 	binary.Read(r, binary.BigEndian, &message.Length)
 	binary.Read(r, binary.BigEndian, &message.MessageID)
 
 	message.Payload = make([]byte, message.Length-1)
-	binary.Read(r, binary.BigEndian, &message.Payload)
+	err := binary.Read(r, binary.BigEndian, &message.Payload)
 
-	return message
+	return message, err
 }
 
-func (msg PeerMessage) Write(w io.Writer) {
+func (msg PeerMessage) Write(w io.Writer) error {
 	binary.Write(w, binary.BigEndian, msg.Length)
-	binary.Write(w, binary.BigEndian, msg.MessageID)
+	err := binary.Write(w, binary.BigEndian, msg.MessageID)
+	if err != nil {
+		return err
+	}
 
 	if len(msg.Payload) > 0 {
-		binary.Write(w, binary.BigEndian, msg.Payload)
+		err := binary.Write(w, binary.BigEndian, msg.Payload)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
-func ReadBitField(r io.Reader) bitfield.BitField {
-	message := ReadPeerMessage(r)
+func ReadBitField(r io.Reader) (bitfield.BitField, error) {
+	message, err := ReadPeerMessage(r)
 
-	return bitfield.BitField(message.Payload)
+	return bitfield.BitField(message.Payload), err
 }
 
 // write interested message
-func SendInterested(w io.Writer) {
+func SendInterested(w io.Writer) error {
 	message := PeerMessage{
 		Length:    1,
 		MessageID: MSG_INTERESTED,
 		Payload:   make([]byte, 0),
 	}
 
-	message.Write(w)
-}
-
-// get unchoke message
-func IsUnchoke(r io.Reader) bool {
-	msg := ReadPeerMessage(r)
-
-	return msg.MessageID == MSG_UNCHOKE
+	err := message.Write(w)
+	return err
 }
 
 // request for a piece
-func RequestPiece(index, begin, length uint32, w io.Writer) {
+func RequestPiece(index, begin, length uint32, w io.Writer) error {
 	// one uint32 => 4 bytes
 	message := PeerMessage{
 		Length:    13,
@@ -80,7 +82,9 @@ func RequestPiece(index, begin, length uint32, w io.Writer) {
 	// write the payload
 	binary.Write(w, binary.BigEndian, index)
 	binary.Write(w, binary.BigEndian, begin)
-	binary.Write(w, binary.BigEndian, length)
+	err := binary.Write(w, binary.BigEndian, length)
+
+	return err
 }
 
 func ReadBlock(message PeerMessage) (int, int, []byte) {

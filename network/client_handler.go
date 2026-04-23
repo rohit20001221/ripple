@@ -28,7 +28,11 @@ func (c *Client) startDownloadHandler() {
 		return
 	}
 
-	handshakeResponse := messages.NewHandshake().Decode(c.Conn)
+	handshakeResponse, err := messages.NewHandshake().Decode(c.Conn)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
 	// if the info hash don't match close the peer connection
 	if !bytes.Equal(c.Torrent.InfoHash[:], handshakeResponse.InfoHash[:]) {
@@ -39,7 +43,12 @@ func (c *Client) startDownloadHandler() {
 	}
 
 	// get the bitfield message
-	bitfield := messages.ReadBitField(c.Conn)
+	bitfield, err := messages.ReadBitField(c.Conn)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
 	log.Printf("bitfield: %b", bitfield)
 	choked := true
 
@@ -56,7 +65,11 @@ func (c *Client) startDownloadHandler() {
 			continue
 		}
 
-		message := messages.ReadPeerMessage(c.Conn)
+		message, err := messages.ReadPeerMessage(c.Conn)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 
 		switch message.MessageID {
 		case messages.MSG_CHOKE:
@@ -87,7 +100,12 @@ func (c *Client) startDownloadHandler() {
 
 			// wait until we receive all the blocks of the pieces
 			for totalBlocks > 0 {
-				message := messages.ReadPeerMessage(c.Conn)
+				message, err := messages.ReadPeerMessage(c.Conn)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+
 				if message.MessageID == messages.MSG_PIECE {
 					// parse the message payload to piece block message
 					_, begin, block := messages.ReadBlock(message)
