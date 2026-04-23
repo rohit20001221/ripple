@@ -114,7 +114,7 @@ func (t *Torrent) GetPeicePosition(index int) (int, int, int) {
 	start := index * size
 	end := min(start+size, t.Length)
 
-	return start, end, end - size
+	return start, end, end - start
 }
 
 func New(path string) (*Torrent, error) {

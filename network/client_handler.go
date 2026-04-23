@@ -51,11 +51,25 @@ func (c *Client) startDownloadHandler() {
 		if !bitfield.HasIndex(task.index) {
 			// if the current peer is not having the piece
 			// enque the task and continue
+			log.Println("peer dosen't have the block")
 			c.TaskQueue <- task
 			continue
 		}
 
+		message := messages.ReadPeerMessage(c.Conn)
+
+		switch message.MessageID {
+		case messages.MSG_CHOKE:
+			c.TaskQueue <- task
+			choked = true
+		case messages.MSG_UNCHOKE:
+			choked = false
+		}
+
 		if !choked {
+			totalBlocks := 0
+			piece := make([]byte, task.size)
+
 			// process the piece
 
 			// break the piece into blocks of 16KiB (16 * 1024 bytes) and send a request message for each block
@@ -64,13 +78,9 @@ func (c *Client) startDownloadHandler() {
 			// begin: 0 based byte offset within the piece
 			// length of block in bytes
 			// length of blocks is 16 * 1024 or 2^14 for each block except last one
-			totalBlocks := 0
-			piece := make([]byte, task.size)
 
 			// messages.RequestPiece(index, begin, length)
 			for _, block := range task.Blocks() {
-				log.Println(block)
-
 				totalBlocks++
 				messages.RequestPiece(block.pieceIndex, block.begin, block.length, c.Conn)
 			}
@@ -81,7 +91,11 @@ func (c *Client) startDownloadHandler() {
 				if message.MessageID == messages.MSG_PIECE {
 					// parse the message payload to piece block message
 					_, begin, block := messages.ReadBlock(message)
-					copy(piece[begin:], block)
+
+					start := begin
+					end := start + len(block)
+
+					copy(piece[start:end], block)
 
 					totalBlocks--
 				}
@@ -89,6 +103,8 @@ func (c *Client) startDownloadHandler() {
 
 			// if the piece received is invalid then assign it back to queue
 			if !task.CheckIntegrity(piece) {
+				log.Println("invalid integrity")
+
 				c.TaskQueue <- task
 				continue
 			}
@@ -97,10 +113,7 @@ func (c *Client) startDownloadHandler() {
 				start: task.start,
 				piece: piece,
 			}
-		} else {
-			// wait for the peer to unchoke itself
-			c.TaskQueue <- task
-			choked = !messages.IsUnchoke(c.Conn)
 		}
+
 	}
 }

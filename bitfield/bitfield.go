@@ -2,14 +2,25 @@ package bitfield
 
 type BitField []byte
 
-func (b BitField) HasIndex(index int) bool {
-	idx, offset := index/8, index%8
+func (bf BitField) HasIndex(index int) bool {
+	byteIndex := index / 8
+	offset := index % 8
 
-	return (b[idx] & (1 << (7 - uint(offset)))) != 0
+	if byteIndex < 0 || byteIndex >= len(bf) {
+		return false
+	}
+
+	return bf[byteIndex]>>uint(7-offset)&1 != 0
 }
 
-func (b BitField) SetIndex(index int) {
-	idx, offset := index/8, index%8
+func (bf BitField) SetIndex(index int) {
+	byteIndex := index / 8
+	offset := index % 8
 
-	b[idx] |= (1 << (7 - uint(offset)))
+	// silently discard invalid bounded index
+	if byteIndex < 0 || byteIndex >= len(bf) {
+		return
+	}
+
+	bf[byteIndex] |= 1 << uint(7-offset)
 }

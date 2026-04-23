@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	MAX_BLOCK_SIZE = 1 << 14
+	MAX_BLOCK_SIZE = 16384
 )
 
 type pieceTask struct {
@@ -32,17 +32,18 @@ type pieceBlock struct {
 func (task *pieceTask) Blocks() []pieceBlock {
 	blocks := make([]pieceBlock, 0)
 
-	totalBlocks := task.size / MAX_BLOCK_SIZE
-	for i := range totalBlocks {
-		start := i * MAX_BLOCK_SIZE
-		end := min(start+MAX_BLOCK_SIZE, task.size)
+	offset := 0
+	for offset < task.size {
+		end := min(offset+MAX_BLOCK_SIZE, task.size)
 
 		blocks = append(blocks, pieceBlock{
 			pieceIndex: uint32(task.index),
-			begin:      uint32(start),
+			begin:      uint32(offset),
 			end:        uint32(end),
-			length:     uint32(end - start),
+			length:     uint32(end - offset),
 		})
+
+		offset += MAX_BLOCK_SIZE
 	}
 
 	return blocks

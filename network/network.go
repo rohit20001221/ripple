@@ -55,6 +55,7 @@ func NewPeerNetwork(torrent *torrent.Torrent) *PeerNetwork {
 
 func (n *PeerNetwork) Start() {
 	for i, piece := range n.Torrent.PieceHashes {
+		log.Println("enqueing piece:", i)
 		start, end, size := n.Torrent.GetPeicePosition(i)
 
 		n.TaskQueue <- &pieceTask{
@@ -71,10 +72,7 @@ func (n *PeerNetwork) Start() {
 	}
 
 	for range len(n.Torrent.PieceHashes) {
-		piece := <-n.PieceResult
-
-		// collect indivudial pieces
-		log.Println(string(piece.piece))
+		<-n.PieceResult
 	}
 
 	close(n.PieceResult)
