@@ -20,6 +20,10 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	log.Println("Announce:", torrent.Announce)
+	log.Println("File Length:", torrent.Length)
+	log.Println("Piece Length:", torrent.PieceLength)
+
 	for _, peer := range torrent.Peers {
 		log.Println(peer)
 	}

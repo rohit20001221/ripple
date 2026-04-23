@@ -52,11 +52,12 @@ func NewPeerNetwork(torrent *torrent.Torrent) *PeerNetwork {
 
 func (n *PeerNetwork) Start() {
 	for i, piece := range n.Torrent.PieceHashes {
-		start, end := n.Torrent.GetPeicePosition(i)
+		start, end, size := n.Torrent.GetPeicePosition(i)
 
 		n.TaskQueue <- &pieceTask{
 			start: start,
 			end:   end,
+			size:  size,
 			hash:  piece,
 		}
 	}

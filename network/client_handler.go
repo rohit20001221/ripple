@@ -14,7 +14,9 @@ func (c *Client) Close() {
 func (c *Client) startDownloadHandler() {
 	defer c.Close()
 
-	handshake := messages.NewHandshake(c.Torrent.InfoHash, c.Torrent.PeerID)
+	handshake := messages.NewHandshake()
+	handshake.SetInfoHash(c.Torrent.InfoHash)
+	handshake.SetPeerID(c.Torrent.PeerID)
 
 	var buf bytes.Buffer
 	handshake.Encode(&buf)
@@ -26,7 +28,17 @@ func (c *Client) startDownloadHandler() {
 		return
 	}
 
-	for task := range c.TaskQueue {
-		log.Println(task)
+	handshakeResponse := messages.NewHandshake().Decode(c.Conn)
+
+	// if the info hash don't match close the peer connection
+	if !bytes.Equal(c.Torrent.InfoHash[:], handshakeResponse.InfoHash[:]) {
+		c.Conn.Close()
+
+		log.Println("info hash didn't match")
+		return
+	}
+
+	for range c.TaskQueue {
+
 	}
 }
