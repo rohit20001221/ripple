@@ -12,6 +12,8 @@ func (c *Client) Close() {
 }
 
 func (c *Client) startDownloadHandler() {
+	defer c.Close()
+
 	handshake := messages.NewHandshake(c.Torrent.InfoHash, c.Torrent.PeerID)
 
 	var buf bytes.Buffer
@@ -24,7 +26,7 @@ func (c *Client) startDownloadHandler() {
 		return
 	}
 
-	for {
-
+	for task := range c.TaskQueue {
+		log.Println(task)
 	}
 }
