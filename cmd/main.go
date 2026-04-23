@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/rohit20001221/ripple/network"
 	"github.com/rohit20001221/ripple/torrent"
 )
 
@@ -22,4 +23,9 @@ func main() {
 	for _, peer := range torrent.Peers {
 		log.Println(peer)
 	}
+
+	network := network.NewPeerNetwork(torrent)
+
+	// start the torrent network
+	network.Start()
 }
