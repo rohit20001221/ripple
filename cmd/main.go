@@ -25,10 +25,6 @@ func main() {
 	log.Println("File Length:", torrent.Length)
 	log.Println("Piece Length:", torrent.PieceLength)
 
-	for _, peer := range torrent.Peers {
-		log.Println(peer)
-	}
-
 	network := network.NewPeerNetwork(torrent)
 
 	// start the torrent network

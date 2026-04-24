@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 
 	"github.com/rohit20001221/ripple/peer"
 	"github.com/rohit20001221/ripple/torrent"
@@ -32,8 +33,11 @@ func NewPeerNetwork(torrent *torrent.Torrent) *PeerNetwork {
 
 	for _, peer := range torrent.Peers {
 		// establish a tcp connection
-		conn, err := net.Dial("tcp", peer.String())
+
+		log.Println("establishing connection:", peer.String())
+		conn, err := net.DialTimeout("tcp", peer.String(), time.Duration(time.Second*2))
 		if err != nil {
+			log.Println(err)
 			continue
 		}
 
