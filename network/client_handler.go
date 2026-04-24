@@ -67,6 +67,8 @@ func (c *Client) startDownloadHandler() {
 
 		message, err := messages.ReadPeerMessage(c.Conn)
 		if err != nil {
+			c.TaskQueue <- task
+
 			log.Println(err)
 			return
 		}
@@ -95,13 +97,22 @@ func (c *Client) startDownloadHandler() {
 			// messages.RequestPiece(index, begin, length)
 			for _, block := range task.Blocks() {
 				totalBlocks++
-				messages.RequestPiece(block.pieceIndex, block.begin, block.length, c.Conn)
+				err := messages.RequestPiece(block.pieceIndex, block.begin, block.length, c.Conn)
+
+				if err != nil {
+					c.TaskQueue <- task
+
+					log.Println(err)
+					return
+				}
 			}
 
 			// wait until we receive all the blocks of the pieces
 			for totalBlocks > 0 {
 				message, err := messages.ReadPeerMessage(c.Conn)
 				if err != nil {
+					c.TaskQueue <- task
+
 					log.Println(err)
 					return
 				}
